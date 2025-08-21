@@ -27,7 +27,7 @@ fn main() {
 
     
     let filename = &args[1];
-    let input = fs::read_to_string(filename).expect("Could not read file");
+    let input = fs::read_to_string(filename).expect("Couldnt read the file");
 
     // create instances of structures
     let mut lexer = Lexer::new(&input);

@@ -1,5 +1,5 @@
-// example1.c
-// Example C file for mini-c
 int main() {
+    int a = 3;
+    printf("%d\n", a);
     return 0;
 }
