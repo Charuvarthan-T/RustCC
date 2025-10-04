@@ -3,6 +3,7 @@ mod token;
 mod lexer;
 mod parser;
 mod ast;
+mod semantic;
 
 // imports as in python
 // 1. access CLI
@@ -46,6 +47,20 @@ fn main() {
     // create a parse and call the AST
     let mut parser = Parser::new(tokens);
     let ast = parser.parse_program();
+
+    // Run semantic analysis
+    match semantic::analyze(&ast) {
+        Ok(()) => {
+            // no semantic errors
+        }
+        Err(errs) => {
+            eprintln!("Semantic errors found:");
+            for e in errs {
+                eprintln!("{:?}", e);
+            }
+            // still print AST for debugging
+        }
+    }
 
     // debug formatter -> :?
     // pretty print -> #
