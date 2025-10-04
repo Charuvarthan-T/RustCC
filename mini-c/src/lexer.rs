@@ -44,11 +44,53 @@ impl Lexer {
     // skips over spaces
     fn skip_whitespace(&mut self) {
         while let Some(ch) = self.peek_char() {
+            // skip normal whitespace
             if ch.is_whitespace() {
                 self.position += 1;
-            } else {
-                break;
+                continue;
             }
+
+            // skip single-line comments starting with //
+            if ch == '/' {
+                // lookahead
+                if let Some(next) = self.input.get(self.position + 1) {
+                    if *next == '/' {
+                        // consume '//' and then all chars until newline
+                        self.position += 2;
+                        while let Some(nc) = self.peek_char() {
+                            self.position += 1;
+                            if nc == '\n' {
+                                break;
+                            }
+                        }
+                        continue;
+                    } else if *next == '*' {
+                        // block comment /* ... */
+                        self.position += 2; // consume '/*'
+                        while let Some(_) = self.peek_char() {
+                            // look for closing */
+                            if let Some(c1) = self.peek_char() {
+                                if c1 == '*' {
+                                    // check next
+                                    if let Some(c2) = self.input.get(self.position + 1) {
+                                        if *c2 == '/' {
+                                            // consume '*/'
+                                            self.position += 2;
+                                            break;
+                                        }
+                                    }
+                                }
+                                self.position += 1;
+                            } else {
+                                break;
+                            }
+                        }
+                        continue;
+                    }
+                }
+            }
+
+            break;
         }
     }
 

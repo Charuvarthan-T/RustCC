@@ -52,9 +52,8 @@ fn main() {
     if let Err(errs) = semantic::analyze(&ast) {
         eprintln!("Semantic errors found:");
         for e in errs {
-            eprintln!("{:?}", e);
+            eprintln!("{}", e);
         }
-        // exit non-zero to signal failure
         std::process::exit(1);
     }
 
