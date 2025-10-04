@@ -1,16 +1,18 @@
 use std::collections::HashMap;
+use crate::ast::Type;
 
 #[derive(Debug, Clone)]
 pub enum Symbol {
     Function(FunctionSig),
-    Variable { name: String },
-    Param { name: String },
+    Variable { name: String, ty: Type },
+    Param { name: String, ty: Type },
 }
 
 #[derive(Debug, Clone)]
 pub struct FunctionSig {
     pub name: String,
-    pub params: Vec<String>,
+    pub return_type: Type,
+    pub params_types: Vec<Type>,
 }
 
 struct Scope {
@@ -58,21 +60,21 @@ impl SymbolTable {
         Ok(())
     }
 
-    pub fn declare_local_var(&mut self, name: &str) -> Result<(), String> {
+    pub fn declare_local_var(&mut self, name: &str, ty: Type) -> Result<(), String> {
         let scope = &mut self.scopes[self.current];
         if scope.symbols.contains_key(name) {
             return Err(format!("duplicate local: {}", name));
         }
-        scope.symbols.insert(name.to_string(), Symbol::Variable { name: name.to_string() });
+        scope.symbols.insert(name.to_string(), Symbol::Variable { name: name.to_string(), ty });
         Ok(())
     }
 
-    pub fn declare_param(&mut self, name: &str) -> Result<(), String> {
+    pub fn declare_param(&mut self, name: &str, ty: Type) -> Result<(), String> {
         let scope = &mut self.scopes[self.current];
         if scope.symbols.contains_key(name) {
             return Err(format!("duplicate param: {}", name));
         }
-        scope.symbols.insert(name.to_string(), Symbol::Param { name: name.to_string() });
+        scope.symbols.insert(name.to_string(), Symbol::Param { name: name.to_string(), ty });
         Ok(())
     }
 
