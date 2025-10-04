@@ -8,6 +8,7 @@ mod symbol;
 mod codegen;
 mod ir;
 mod lower;
+mod codegen_tac;
 
 // imports as in python
 // 1. access CLI
@@ -68,6 +69,14 @@ fn main() {
         println!("{}", f);
     }
     println!("---------------------");
+
+    // Emit pseudo-assembly from TAC (Phase 5 preparatory)
+    println!("--- Emitted pseudo-assembly ---");
+    for f in &tacs {
+        let asm = codegen_tac::emit_function(f);
+        println!("{}", asm);
+    }
+    println!("-------------------------------");
 
     // run the program (simple interpreter) and use returned exit code
     match codegen::run(&ast) {
