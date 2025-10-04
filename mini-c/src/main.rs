@@ -49,17 +49,13 @@ fn main() {
     let ast = parser.parse_program();
 
     // Run semantic analysis
-    match semantic::analyze(&ast) {
-        Ok(()) => {
-            // no semantic errors
+    if let Err(errs) = semantic::analyze(&ast) {
+        eprintln!("Semantic errors found:");
+        for e in errs {
+            eprintln!("{:?}", e);
         }
-        Err(errs) => {
-            eprintln!("Semantic errors found:");
-            for e in errs {
-                eprintln!("{:?}", e);
-            }
-            // still print AST for debugging
-        }
+        // exit non-zero to signal failure
+        std::process::exit(1);
     }
 
     // debug formatter -> :?
