@@ -6,6 +6,8 @@ mod ast;
 mod semantic;
 mod symbol;
 mod codegen;
+mod ir;
+mod lower;
 
 // imports as in python
 // 1. access CLI
@@ -58,6 +60,14 @@ fn main() {
         }
         std::process::exit(1);
     }
+
+    // Lower AST to TAC and print for inspection (Phase 4)
+    let tacs = lower::lower_program(&ast);
+    println!("--- Generated TAC ---");
+    for f in &tacs {
+        println!("{}", f);
+    }
+    println!("---------------------");
 
     // run the program (simple interpreter) and use returned exit code
     match codegen::run(&ast) {
