@@ -41,7 +41,7 @@ fn main() {
         // Print a condensed view of each statement
         for (i, stmt) in function.body.stmts.iter().enumerate() {
             match stmt {
-                mini_c::ast::Stmt::VarDecl { name, value } => {
+                mini_c::ast::Stmt::VarDecl { name, .. } => {
                     println!("    Stmt {}: Variable Declaration: {} = ...", i+1, name);
                 },
                 mini_c::ast::Stmt::ExprStmt(expr) => {
@@ -52,7 +52,7 @@ fn main() {
                         _ => println!("    Stmt {}: Expression Statement", i+1),
                     }
                 },
-                mini_c::ast::Stmt::Return(expr) => {
+                mini_c::ast::Stmt::Return(..) => {
                     println!("    Stmt {}: Return Statement", i+1);
                 },
             }

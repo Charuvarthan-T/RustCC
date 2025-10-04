@@ -1,6 +1,7 @@
 // ast.rs
 // AST definitions for mini-c
 
+#![allow(dead_code)]
 // Abstract Syntax Tree (AST) definitions
 
 // works only on the assumption that all the datatypes are "int"

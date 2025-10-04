@@ -1,4 +1,5 @@
 use crate::ast::*;
+use crate::symbol::{SymbolTable, FunctionSig};
 use std::fmt;
 
 #[derive(Debug, Clone)]
@@ -13,33 +14,7 @@ pub enum SemanticError {
 
 pub type SemResult<T> = Result<T, Vec<SemanticError>>;
 
-pub struct SymbolTable {
-    pub functions: Vec<FunctionSig>,
-}
-
-#[derive(Debug, Clone)]
-pub struct FunctionSig {
-    pub name: String,
-    pub params: Vec<String>,
-}
-
-impl SymbolTable {
-    pub fn new() -> Self {
-        SymbolTable { functions: Vec::new() }
-    }
-
-    pub fn add_function(&mut self, fn_sig: FunctionSig) -> Result<(), SemanticError> {
-        if self.functions.iter().any(|f| f.name == fn_sig.name) {
-            return Err(SemanticError::DuplicateFunction { name: fn_sig.name });
-        }
-        self.functions.push(fn_sig);
-        Ok(())
-    }
-
-    pub fn find_function(&self, name: &str) -> Option<FunctionSig> {
-        self.functions.iter().find(|f| f.name == name).cloned()
-    }
-}
+// reuse symbol::SymbolTable and FunctionSig
 
 impl fmt::Display for SemanticError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -76,22 +51,27 @@ pub fn analyze(program: &Program) -> SemResult<()> {
             name: func.name.clone(),
             params: func.params.clone(),
         };
-        if let Err(e) = symbols.add_function(sig) {
-            errors.push(e);
+        if let Err(_e) = symbols.declare_global_function(sig.clone()) {
+            errors.push(SemanticError::DuplicateFunction { name: func.name.clone() });
         }
     }
 
-    // analyze each function body
+    // analyze each function body using proper scopes
     for func in &program.functions {
-        let mut locals: Vec<String> = Vec::new();
-        // params are considered declared
+        symbols.enter_scope();
+        // declare params in the new function scope
         for p in &func.params {
-            locals.push(p.clone());
+            if let Err(_) = symbols.declare_param(p) {
+                errors.push(SemanticError::DuplicateParam { func: func.name.clone(), name: p.clone() });
+            }
         }
 
+        // walk statements and use symbol table for locals
         for stmt in &func.body.stmts {
-            analyze_stmt(stmt, &mut locals, &symbols, &mut errors, &func.name);
+            analyze_stmt(stmt, &mut symbols, &mut errors, &func.name);
         }
+
+        symbols.leave_scope();
     }
 
     if errors.is_empty() {
@@ -101,48 +81,48 @@ pub fn analyze(program: &Program) -> SemResult<()> {
     }
 }
 
-fn analyze_stmt(stmt: &Stmt, locals: &mut Vec<String>, symbols: &SymbolTable, errors: &mut Vec<SemanticError>, func_name: &str) {
+fn analyze_stmt(stmt: &Stmt, symbols: &mut SymbolTable, errors: &mut Vec<SemanticError>, func_name: &str) {
     match stmt {
         Stmt::VarDecl { name, value } => {
-            if locals.iter().any(|n| n == name) {
+            // check duplicate in current scope
+            if let Err(_) = symbols.declare_local_var(name) {
                 errors.push(SemanticError::DuplicateVariable { func: func_name.to_string(), name: name.clone() });
             } else {
-                analyze_expr(value, locals, symbols, errors, func_name);
-                locals.push(name.clone());
+                analyze_expr(value, symbols, errors, func_name);
             }
         }
-        Stmt::ExprStmt(expr) => analyze_expr(expr, locals, symbols, errors, func_name),
-        Stmt::Return(expr) => analyze_expr(expr, locals, symbols, errors, func_name),
+        Stmt::ExprStmt(expr) => analyze_expr(expr, symbols, errors, func_name),
+        Stmt::Return(expr) => analyze_expr(expr, symbols, errors, func_name),
     }
 }
 
-fn analyze_expr(expr: &Expr, locals: &Vec<String>, symbols: &SymbolTable, errors: &mut Vec<SemanticError>, func_name: &str) {
+fn analyze_expr(expr: &Expr, symbols: &SymbolTable, errors: &mut Vec<SemanticError>, func_name: &str) {
     match expr {
         Expr::Number(_) => {}
         Expr::StringLiteral(_) => {}
         Expr::Ident(name) => {
-            if !locals.iter().any(|n| n == name) {
+            if symbols.lookup(name).is_none() {
                 errors.push(SemanticError::UndeclaredVariable { func: func_name.to_string(), name: name.clone() });
             }
         }
-        Expr::Unary { op: _, expr } => analyze_expr(expr, locals, symbols, errors, func_name),
+        Expr::Unary { op: _, expr } => analyze_expr(expr, symbols, errors, func_name),
         Expr::Binary { op: _, left, right } => {
-            analyze_expr(left, locals, symbols, errors, func_name);
-            analyze_expr(right, locals, symbols, errors, func_name);
+            analyze_expr(left, symbols, errors, func_name);
+            analyze_expr(right, symbols, errors, func_name);
         }
         Expr::Assign { name, value } => {
-            if !locals.iter().any(|n| n == name) {
+            if symbols.lookup(name).is_none() {
                 errors.push(SemanticError::UndeclaredVariable { func: func_name.to_string(), name: name.clone() });
             }
-            analyze_expr(value, locals, symbols, errors, func_name);
+            analyze_expr(value, symbols, errors, func_name);
         }
         Expr::Call { name, args } => {
             // analyze args
             for a in args {
-                analyze_expr(a, locals, symbols, errors, func_name);
+                analyze_expr(a, symbols, errors, func_name);
             }
             // check arity if function known
-            if let Some(sig) = symbols.find_function(name) {
+            if let Some(sig) = symbols.find_global_function(name) {
                 if sig.params.len() != args.len() {
                     errors.push(SemanticError::WrongArgCount { func: func_name.to_string(), name: name.clone(), expected: sig.params.len(), found: args.len() });
                 }

@@ -4,6 +4,7 @@ mod lexer;
 mod parser;
 mod ast;
 mod semantic;
+mod symbol;
 
 // imports as in python
 // 1. access CLI
