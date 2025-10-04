@@ -5,6 +5,7 @@ mod parser;
 mod ast;
 mod semantic;
 mod symbol;
+mod codegen;
 
 // imports as in python
 // 1. access CLI
@@ -58,7 +59,12 @@ fn main() {
         std::process::exit(1);
     }
 
-    // debug formatter -> :?
-    // pretty print -> #
-    println!("{:#?}", ast);
+    // run the program (simple interpreter) and use returned exit code
+    match codegen::run(&ast) {
+        Ok(code) => std::process::exit(code),
+        Err(e) => {
+            eprintln!("Runtime error: {}", e);
+            std::process::exit(1);
+        }
+    }
 }

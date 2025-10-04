@@ -139,7 +139,7 @@ fn analyze_expr(expr: &Expr, symbols: &SymbolTable, errors: &mut Vec<SemanticErr
             }
             analyze_expr(value, symbols, errors, func_name);
         }
-        Expr::Call { name, args } => {
+    Expr::Call { name, args } => {
             // analyze args
             for a in args {
                 analyze_expr(a, symbols, errors, func_name);
