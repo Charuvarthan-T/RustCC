@@ -137,22 +137,69 @@ impl Lexer {
                 }
                 match ident.as_str() {
                     "int" => Token::Int,
+                    "float" => Token::Float,
+                    "char" => Token::Char,
+                    "void" => Token::Void,
                     "return" => Token::Return,
                     _ => Token::Ident(ident),
                 }
             }
 
-            // numbers are taken now
+            // numbers are taken now (integers and floats)
             c if c.is_ascii_digit() => {
                 let mut number = c.to_string();
+                let mut is_float = false;
                 while let Some(next) = self.peek_char() {
                     if next.is_ascii_digit() {
                         number.push(self.next_char().unwrap());
+                    } else if next == '.' && !is_float {
+                        // float literal
+                        is_float = true;
+                        number.push(self.next_char().unwrap());
+                        // collect fractional part
+                        while let Some(frac) = self.peek_char() {
+                            if frac.is_ascii_digit() {
+                                number.push(self.next_char().unwrap());
+                            } else {
+                                break;
+                            }
+                        }
+                        break;
                     } else {
                         break;
                     }
                 }
-                Token::Number(number.parse::<i64>().unwrap())
+                if is_float {
+                    Token::FloatNumber(number.parse::<f64>().unwrap())
+                } else {
+                    Token::Number(number.parse::<i64>().unwrap())
+                }
+            }
+
+            // char literal like 'a'
+            '\'' => {
+                // read char content; support simple escapes like '\n' or '\''
+                let ch = if let Some(next) = self.next_char() {
+                    if next == '\\' {
+                        // escaped char
+                        if let Some(escaped) = self.next_char() {
+                            escaped
+                        } else {
+                            '\0'
+                        }
+                    } else {
+                        next
+                    }
+                } else {
+                    '\0'
+                };
+                // consume closing quote if present
+                if let Some(peek) = self.peek_char() {
+                    if peek == '\'' {
+                        self.next_char();
+                    }
+                }
+                Token::CharLiteral(ch)
             }
 
             // end it

@@ -1,6 +1,6 @@
 // brings definition and functions from other types
 use crate::token::Token;
-use crate::ast::{Program, Function, Block, Stmt, Expr};
+use crate::ast::{Program, Function, Block, Stmt, Expr, Type};
 
 // holds all tokens and pointer access
 pub struct Parser {
@@ -53,11 +53,14 @@ impl Parser {
     }
 
     fn parse_function(&mut self) -> Option<Function> {
-        // Expect: int <ident>() { <body> }
-        match self.current_token() {
-            Token::Int => self.advance(),
+        // Expect: <type> <ident>() { <body> }
+        let return_type = match self.current_token() {
+            Token::Int => { self.advance(); Type::Int }
+            Token::Float => { self.advance(); Type::Float }
+            Token::Char => { self.advance(); Type::Char }
+            Token::Void => { self.advance(); Type::Void }
             _ => return None,
-        }
+        };
 
         let name = if let Token::Ident(name) = self.current_token().clone() {
             self.advance();
@@ -91,6 +94,7 @@ impl Parser {
 
         Some(Function { 
             name, 
+            return_type,
             params: vec![], 
             body: Block { stmts } 
         })
@@ -100,30 +104,60 @@ impl Parser {
         match self.current_token() {
             Token::Return => {
                 self.advance();
-                if let Token::Number(n) = self.current_token().clone() {
-                    self.advance();
-                    if *self.current_token() == Token::Semicolon {
+                match self.current_token().clone() {
+                    Token::Number(n) => {
                         self.advance();
+                        if *self.current_token() == Token::Semicolon { self.advance(); }
+                        return Some(Stmt::Return(Expr::Number(n)));
                     }
-                    return Some(Stmt::Return(Expr::Number(n)));
+                    Token::FloatNumber(f) => {
+                        self.advance();
+                        if *self.current_token() == Token::Semicolon { self.advance(); }
+                        return Some(Stmt::Return(Expr::FloatNumber(f)));
+                    }
+                    Token::CharLiteral(c) => {
+                        self.advance();
+                        if *self.current_token() == Token::Semicolon { self.advance(); }
+                        return Some(Stmt::Return(Expr::CharLiteral(c)));
+                    }
+                    _ => {}
                 }
             }
-            Token::Int => {
-                // Variable declaration: int name = value;
+            Token::Int | Token::Float | Token::Char => {
+                // Variable declaration: <type> name = value;
+                let ty = match self.current_token() {
+                    Token::Int => Type::Int,
+                    Token::Float => Type::Float,
+                    Token::Char => Type::Char,
+                    _ => Type::Int,
+                };
                 self.advance();
                 if let Token::Ident(name) = self.current_token().clone() {
                     self.advance();
                     if *self.current_token() == Token::Assign {
                         self.advance();
-                        if let Token::Number(n) = self.current_token().clone() {
-                            self.advance();
-                            if *self.current_token() == Token::Semicolon {
+                        match self.current_token().clone() {
+                            Token::Number(n) => {
                                 self.advance();
+                                if *self.current_token() == Token::Semicolon { self.advance(); }
+                                return Some(Stmt::VarDecl { ty, name, value: Expr::Number(n) });
                             }
-                            return Some(Stmt::VarDecl { 
-                                name, 
-                                value: Expr::Number(n) 
-                            });
+                            Token::FloatNumber(f) => {
+                                self.advance();
+                                if *self.current_token() == Token::Semicolon { self.advance(); }
+                                return Some(Stmt::VarDecl { ty, name, value: Expr::FloatNumber(f) });
+                            }
+                            Token::CharLiteral(c) => {
+                                self.advance();
+                                if *self.current_token() == Token::Semicolon { self.advance(); }
+                                return Some(Stmt::VarDecl { ty, name, value: Expr::CharLiteral(c) });
+                            }
+                            Token::Ident(var_name) => {
+                                self.advance();
+                                if *self.current_token() == Token::Semicolon { self.advance(); }
+                                return Some(Stmt::VarDecl { ty, name, value: Expr::Ident(var_name.clone()) });
+                            }
+                            _ => {}
                         }
                     }
                 }
@@ -149,6 +183,14 @@ impl Parser {
                             }
                             Token::Number(n) => {
                                 args.push(Expr::Number(*n));
+                                self.advance();
+                            }
+                            Token::FloatNumber(f) => {
+                                args.push(Expr::FloatNumber(*f));
+                                self.advance();
+                            }
+                            Token::CharLiteral(c) => {
+                                args.push(Expr::CharLiteral(*c));
                                 self.advance();
                             }
                             Token::Comma => {

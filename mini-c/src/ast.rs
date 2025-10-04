@@ -6,10 +6,20 @@
 
 // works only on the assumption that all the datatypes are "int"
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Type {
+    Int,
+    Float,
+    Char,
+    Void,
+}
+
 
 #[derive(Debug, Clone)]
 pub enum Expr {
     Number(i64),
+    FloatNumber(f64),
+    CharLiteral(char),
     StringLiteral(String),
     Ident(String),
     Unary { op: UnaryOp, expr: Box<Expr> },
@@ -27,7 +37,7 @@ pub enum BinaryOp { Add, Sub, Mul, Div }
 
 #[derive(Debug, Clone)]
 pub enum Stmt {
-    VarDecl { name: String, value: Expr },
+    VarDecl { ty: Type, name: String, value: Expr },
     ExprStmt(Expr),
     Return(Expr),
     // minimal subset for now; add If/While later
@@ -41,7 +51,8 @@ pub struct Block {
 #[derive(Debug, Clone)]
 pub struct Function {
     pub name: String,
-    pub params: Vec<String>,  // all `int` in our subset
+    pub return_type: Type,
+    pub params: Vec<String>,  // param names
     pub body: Block,
 }
 

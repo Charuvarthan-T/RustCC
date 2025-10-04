@@ -83,7 +83,7 @@ pub fn analyze(program: &Program) -> SemResult<()> {
 
 fn analyze_stmt(stmt: &Stmt, symbols: &mut SymbolTable, errors: &mut Vec<SemanticError>, func_name: &str) {
     match stmt {
-        Stmt::VarDecl { name, value } => {
+        Stmt::VarDecl { ty: _, name, value } => {
             // check duplicate in current scope
             if let Err(_) = symbols.declare_local_var(name) {
                 errors.push(SemanticError::DuplicateVariable { func: func_name.to_string(), name: name.clone() });
@@ -98,8 +98,10 @@ fn analyze_stmt(stmt: &Stmt, symbols: &mut SymbolTable, errors: &mut Vec<Semanti
 
 fn analyze_expr(expr: &Expr, symbols: &SymbolTable, errors: &mut Vec<SemanticError>, func_name: &str) {
     match expr {
-        Expr::Number(_) => {}
-        Expr::StringLiteral(_) => {}
+    Expr::Number(_) => {}
+    Expr::FloatNumber(_) => {}
+    Expr::CharLiteral(_) => {}
+    Expr::StringLiteral(_) => {}
         Expr::Ident(name) => {
             if symbols.lookup(name).is_none() {
                 errors.push(SemanticError::UndeclaredVariable { func: func_name.to_string(), name: name.clone() });

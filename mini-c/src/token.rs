@@ -3,9 +3,14 @@
 #[derive(Debug, Clone, PartialEq)]
 pub enum Token {
     Int,
+    Float,
+    Char,
+    Void,
     Return,
     Ident(String),
     Number(i64),
+    FloatNumber(f64),
+    CharLiteral(char),
     String(String),
     Semicolon,
     LParen,
