@@ -42,11 +42,11 @@ pub fn analyze(program: &Program) -> SemResult<()> {
 
     // collect function signatures and check duplicate params
     for func in &program.functions {
-        // check duplicate params within the function
+        // check duplicate params within the function (compare parameter names)
         for i in 0..func.params.len() {
             for j in (i + 1)..func.params.len() {
-                if func.params[i] == func.params[j] {
-                    errors.push(SemanticError::DuplicateParam { func: func.name.clone(), name: func.params[i].clone() });
+                if func.params[i].1 == func.params[j].1 {
+                    errors.push(SemanticError::DuplicateParam { func: func.name.clone(), name: func.params[i].1.clone() });
                 }
             }
         }
@@ -54,7 +54,7 @@ pub fn analyze(program: &Program) -> SemResult<()> {
         let sig = FunctionSig {
             name: func.name.clone(),
             return_type: func.return_type.clone(),
-            params_types: vec![], // parser does not provide param types yet
+            params_types: func.params.iter().map(|(t, _)| t.clone()).collect(),
         };
         if let Err(_e) = symbols.declare_global_function(sig.clone()) {
             errors.push(SemanticError::DuplicateFunction { name: func.name.clone() });
@@ -65,10 +65,9 @@ pub fn analyze(program: &Program) -> SemResult<()> {
     for func in &program.functions {
         symbols.enter_scope();
         // declare params in the new function scope
-        for p in &func.params {
-            // assume params are Int for now
-            if let Err(_) = symbols.declare_param(p, Type::Int) {
-                errors.push(SemanticError::DuplicateParam { func: func.name.clone(), name: p.clone() });
+        for (t, pname) in &func.params {
+            if let Err(_) = symbols.declare_param(pname, t.clone()) {
+                errors.push(SemanticError::DuplicateParam { func: func.name.clone(), name: pname.clone() });
             }
         }
 

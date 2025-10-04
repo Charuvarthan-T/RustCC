@@ -69,11 +69,32 @@ impl Parser {
             return None;
         };
 
+        let mut params: Vec<(Type, String)> = Vec::new();
         if *self.current_token() == Token::LParen {
             self.advance();
-        }
-        if *self.current_token() == Token::RParen {
-            self.advance();
+            // parse parameters until RParen
+            while *self.current_token() != Token::RParen && *self.current_token() != Token::EOF {
+                // expect type
+                let ptype = match self.current_token() {
+                    Token::Int => Type::Int,
+                    Token::Float => Type::Float,
+                    Token::Char => Type::Char,
+                    _ => { self.advance(); continue; }
+                };
+                self.advance();
+                // expect ident
+                if let Token::Ident(pname) = self.current_token().clone() {
+                    params.push((ptype, pname.clone()));
+                    self.advance();
+                }
+                // skip comma
+                if *self.current_token() == Token::Comma {
+                    self.advance();
+                }
+            }
+            if *self.current_token() == Token::RParen {
+                self.advance();
+            }
         }
         if *self.current_token() == Token::LBrace {
             self.advance();
@@ -95,7 +116,7 @@ impl Parser {
         Some(Function { 
             name, 
             return_type,
-            params: vec![], 
+            params, 
             body: Block { stmts } 
         })
     }

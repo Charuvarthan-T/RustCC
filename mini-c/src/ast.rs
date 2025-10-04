@@ -52,7 +52,7 @@ pub struct Block {
 pub struct Function {
     pub name: String,
     pub return_type: Type,
-    pub params: Vec<String>,  // param names
+    pub params: Vec<(Type, String)>,  // param type and name
     pub body: Block,
 }
 

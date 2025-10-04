@@ -35,7 +35,8 @@ fn main() {
     
     for function in &program.functions {
         println!("Function: {}", function.name);
-        println!("  Parameters: [{}]", function.params.join(", "));
+    let param_names: Vec<String> = function.params.iter().map(|(_, name)| name.clone()).collect();
+    println!("  Parameters: [{}]", param_names.join(", "));
         println!("  Body contains {} statements", function.body.stmts.len());
         
         // Print a condensed view of each statement
