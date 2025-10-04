@@ -9,6 +9,7 @@ mod codegen;
 mod ir;
 mod lower;
 mod codegen_tac;
+mod codegen_x64_windows;
 
 // imports as in python
 // 1. access CLI
@@ -77,6 +78,14 @@ fn main() {
         println!("{}", asm);
     }
     println!("-------------------------------");
+
+    // Emit Windows x64 assembly
+    println!("--- Emitted Windows x64 assembly (intel) ---");
+    for f in &tacs {
+        let asm = codegen_x64_windows::emit_function(f);
+        println!("{}", asm);
+    }
+    println!("--------------------------------------------");
 
     // run the program (simple interpreter) and use returned exit code
     match codegen::run(&ast) {
