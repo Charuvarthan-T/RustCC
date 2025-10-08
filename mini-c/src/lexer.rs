@@ -50,7 +50,7 @@ impl Lexer {
                 continue;
             }
 
-            // skip single-line comments starting with //
+            // skip single-line comments starting with  //
             if ch == '/' {
                 // lookahead
                 if let Some(next) = self.input.get(self.position + 1) {
@@ -202,7 +202,7 @@ impl Lexer {
                 Token::CharLiteral(ch)
             }
 
-            // end it
+            // end it , this was added to handle the end of input extraction
             _ => Token::EOF,
         }
     }
