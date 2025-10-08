@@ -28,14 +28,15 @@ impl Parser {
             &Token::EOF
         }
     }
-
-
+    
+    // move to the next token
     fn advance(&mut self){
         if self.position<self.tokens.len(){
             self.position += 1;
         }
     }
 
+    // parse the whole program
     pub fn parse_program(&mut self) -> Program {
         let mut functions = Vec::new();
 
@@ -52,6 +53,8 @@ impl Parser {
         Program { functions }
     }
 
+
+    // parse one function
     fn parse_function(&mut self) -> Option<Function> {
         // Expect: <type> <ident>() { <body> }
         let return_type = match self.current_token() {
@@ -121,6 +124,8 @@ impl Parser {
         })
     }
 
+
+    // parse the statements into one function
     fn parse_statement(&mut self) -> Option<Stmt> {
         match self.current_token() {
             Token::Return => {
