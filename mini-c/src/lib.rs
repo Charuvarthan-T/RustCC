@@ -1,4 +1,6 @@
-// Re-export modules
+
+// modules for the mini C compilers
+
 pub mod lexer;
 pub mod token;
 pub mod parser;
