@@ -1,5 +1,6 @@
 use std::fmt;
 
+// Intermediate Representation (IR) for a simple imperative language
 #[derive(Clone, Debug)]
 pub enum Operand {
     Temp(String),
@@ -9,7 +10,10 @@ pub enum Operand {
     ConstString(String),
 }
 
+
+// helper to find or create a label for a string constant
 impl fmt::Display for Operand {
+    // display
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Operand::Temp(t) => write!(f, "{}", t),
@@ -21,6 +25,8 @@ impl fmt::Display for Operand {
     }
 }
 
+
+// below are the IR instructions and function representation
 #[derive(Clone, Debug)]
 pub enum Instr {
     StoreLocal { name: String, src: Operand },
@@ -29,6 +35,8 @@ pub enum Instr {
     BinOp { dest: String, op: String, left: Operand, right: Operand },
 }
 
+
+// display
 impl fmt::Display for Instr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -48,6 +56,8 @@ impl fmt::Display for Instr {
     }
 }
 
+
+// a function in the IR
 #[derive(Clone, Debug)]
 pub struct FunctionIR {
     pub name: String,
@@ -55,6 +65,8 @@ pub struct FunctionIR {
     pub instrs: Vec<Instr>,
 }
 
+
+// display
 impl fmt::Display for FunctionIR {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "func {}({}) {{", self.name, self.params.join(", "))?;
