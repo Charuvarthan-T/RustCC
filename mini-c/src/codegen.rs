@@ -1,20 +1,23 @@
-// codegen.rs
-// Simple interpreter for mini-c (Phase 4)
-// This implements a minimal runtime that can execute the AST directly.
-// It supports integers, floats, chars, local variables, params, function calls
-// and a builtin `printf` that understands a basic "%d" and "%f" format.
-
+// A simple interpreter for a subset of Mini C, for testing purposes.
 use crate::ast::*;
 use std::collections::HashMap;
 
+
+// supress warnings for unused code
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
+
+
+// a runtime value type
 pub enum Value {
-	Int(i64),
-	Float(f64),
-	Char(char),
-	Void,
+    	Int(i64),
+    	Float(f64),
+    	Char(char),
+    	Void,
 }
 
+
+// helper methods to extract typed values
 impl Value {
 	fn as_int(&self) -> Option<i64> {
 		match self {
@@ -23,6 +26,9 @@ impl Value {
 		}
 	}
 
+
+
+	// extract float value
 	fn as_float(&self) -> Option<f64> {
 		match self {
 			Value::Float(f) => Some(*f),
@@ -31,16 +37,20 @@ impl Value {
 	}
 }
 
+
+
+// a mapping of variable names to their runtime values
 type Locals = HashMap<String, Value>;
 
-// Execute the whole program. Returns the exit code of `main` (0..255) on success
-// or an Err string on runtime error.
+
+// Execute the whole program. Returns the exit code of `main` 0 to 255 on success
 pub fn run(program: &Program) -> Result<i32, String> {
-	// find main
 	let main_func = program.functions.iter().find(|f| f.name == "main");
 	if main_func.is_none() {
 		return Err("No `main` function found".to_string());
 	}
+
+
 	let main = main_func.unwrap();
 	// execute main with no args
 	match execute_function(main, program, vec![]) {
@@ -53,8 +63,9 @@ pub fn run(program: &Program) -> Result<i32, String> {
 	}
 }
 
+
+// Execute a function with given arguments. Returns the return value or an error string.
 fn execute_function(func: &Function, program: &Program, args: Vec<Value>) -> Result<Value, String> {
-	// create locals and populate params
 	let mut locals: Locals = HashMap::new();
 	for (i, (ty, name)) in func.params.iter().enumerate() {
 		if i < args.len() {
@@ -77,22 +88,32 @@ fn execute_function(func: &Function, program: &Program, args: Vec<Value>) -> Res
 			return Ok(ret);
 		}
 	}
-	// no explicit return -> default
+	
+
+	// no explicit return -> default to void
 	Ok(Value::Void)
 }
+
+
 
 // Execute a statement. Returns Ok(Some(value)) if a return occurred with that value.
 fn execute_stmt(stmt: &Stmt, locals: &mut Locals, program: &Program) -> Result<Option<Value>, String> {
 	match stmt {
+
+		// variable declaration: evaluate initializer and store in locals
 		Stmt::VarDecl { ty: _, name, value } => {
 			let v = eval_expr(value, locals, program)?;
 			locals.insert(name.clone(), v);
 			Ok(None)
 		}
+		
+		// expression statement: evaluate expression, discard result
 		Stmt::ExprStmt(e) => {
 			let _ = eval_expr(e, locals, program)?;
 			Ok(None)
 		}
+		
+		// return statement: evaluate expression and return value
 		Stmt::Return(expr) => {
 			let v = eval_expr(expr, locals, program)?;
 			Ok(Some(v))
@@ -100,19 +121,31 @@ fn execute_stmt(stmt: &Stmt, locals: &mut Locals, program: &Program) -> Result<O
 	}
 }
 
+
+
+// Evaluate an expression and return its value
 fn eval_expr(expr: &Expr, locals: &mut Locals, program: &Program) -> Result<Value, String> {
+	
+	// match on expression type 
 	match expr {
 		Expr::Number(n) => Ok(Value::Int(*n)),
 		Expr::FloatNumber(f) => Ok(Value::Float(*f)),
 		Expr::CharLiteral(c) => Ok(Value::Char(*c)),
-	Expr::StringLiteral(_s) => Ok(Value::Void), // strings not stored as runtime Value for now
-		Expr::Ident(name) => {
+	Expr::StringLiteral(_s) => Ok(Value::Void), 
+		
+	Expr::Ident(name) => {
+
+		// look up variable in locals
 			if let Some(v) = locals.get(name) {
 				Ok(v.clone())
 			} else {
 				Err(format!("Undefined variable at runtime: {}", name))
 			}
 		}
+
+
+
+		// unary operation: evaluate sub-expression and apply operator
 		Expr::Unary { op, expr } => {
 			let v = eval_expr(expr, locals, program)?;
 			match (op, v) {
@@ -122,6 +155,10 @@ fn eval_expr(expr: &Expr, locals: &mut Locals, program: &Program) -> Result<Valu
 				_ => Err("Unsupported unary operation or type".to_string()),
 			}
 		}
+
+
+
+		// binary operation: evaluate left and right, apply operator
 		Expr::Binary { op, left, right } => {
 			let l = eval_expr(left, locals, program)?;
 			let r = eval_expr(right, locals, program)?;
@@ -132,12 +169,17 @@ fn eval_expr(expr: &Expr, locals: &mut Locals, program: &Program) -> Result<Valu
 					BinaryOp::Mul => Ok(Value::Int(a * b)),
 					BinaryOp::Div => Ok(Value::Int(a / b)),
 				},
+				
+				
 				(Value::Float(a), Value::Float(b)) => match op {
 					BinaryOp::Add => Ok(Value::Float(a + b)),
 					BinaryOp::Sub => Ok(Value::Float(a - b)),
 					BinaryOp::Mul => Ok(Value::Float(a * b)),
 					BinaryOp::Div => Ok(Value::Float(a / b)),
 				},
+
+
+
 				// simple mixed int/float coercion
 				(Value::Int(a), Value::Float(b)) => {
 					let af = a as f64;
@@ -148,6 +190,10 @@ fn eval_expr(expr: &Expr, locals: &mut Locals, program: &Program) -> Result<Valu
 						BinaryOp::Div => Ok(Value::Float(af / b)),
 					}
 				}
+
+
+
+
 				(Value::Float(a), Value::Int(b)) => {
 					let bf = b as f64;
 					match op {
@@ -157,9 +203,16 @@ fn eval_expr(expr: &Expr, locals: &mut Locals, program: &Program) -> Result<Valu
 						BinaryOp::Div => Ok(Value::Float(a / bf)),
 					}
 				}
+
+
+
+
 				_ => Err("Unsupported binary operand types".to_string()),
 			}
 		}
+
+
+		
 		Expr::Assign { name, value } => {
 			let v = eval_expr(value, locals, program)?;
 			locals.insert(name.clone(), v.clone());
