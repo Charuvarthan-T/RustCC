@@ -1,7 +1,11 @@
+// A simple semantic analysis pass for Mini-C.
 use crate::ast::*;
 use crate::symbol::{SymbolTable, FunctionSig};
 use std::fmt;
 
+
+
+// An enumeration of possible semantic errors.
 #[derive(Debug, Clone)]
 pub enum SemanticError {
     DuplicateFunction { name: String },
@@ -14,10 +18,12 @@ pub enum SemanticError {
     // future: add TypeMismatch, ReturnMissing, etc.
 }
 
+
+// A result type for semantic analysis, accumulating multiple errors.
 pub type SemResult<T> = Result<T, Vec<SemanticError>>;
 
-// reuse symbol::SymbolTable and FunctionSig
 
+// reuse symbol::SymbolTable and FunctionSig
 impl fmt::Display for SemanticError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -32,17 +38,16 @@ impl fmt::Display for SemanticError {
     }
 }
 
-// Perform a basic semantic analysis pass.
-// - Collect functions and ensure no duplicates
-// - For each function, check variable declarations and uses
-// - Check call argument counts against declared params (for known functions)
+
+
+// Analyze the program for semantic errors
 pub fn analyze(program: &Program) -> SemResult<()> {
     let mut errors: Vec<SemanticError> = Vec::new();
     let mut symbols = SymbolTable::new();
 
     // collect function signatures and check duplicate params
     for func in &program.functions {
-        // check duplicate params within the function (compare parameter names)
+        // check duplicate params within the function -> just compare parameter names
         for i in 0..func.params.len() {
             for j in (i + 1)..func.params.len() {
                 if func.params[i].1 == func.params[j].1 {
@@ -51,11 +56,16 @@ pub fn analyze(program: &Program) -> SemResult<()> {
             }
         }
 
+
+        // declare function in global scope
         let sig = FunctionSig {
             name: func.name.clone(),
             return_type: func.return_type.clone(),
             params_types: func.params.iter().map(|(t, _)| t.clone()).collect(),
         };
+
+
+        // insert into symbol table, check duplicate function
         if let Err(_e) = symbols.declare_global_function(sig.clone()) {
             errors.push(SemanticError::DuplicateFunction { name: func.name.clone() });
         }
@@ -117,46 +127,61 @@ fn analyze_stmt(stmt: &Stmt, symbols: &mut SymbolTable, errors: &mut Vec<Semanti
     }
 }
 
+
+
+// Analyze an expression for semantic errors.
 fn analyze_expr(expr: &Expr, symbols: &SymbolTable, errors: &mut Vec<SemanticError>, func_name: &str) {
     match expr {
     Expr::Number(_) => {}
     Expr::FloatNumber(_) => {}
     Expr::CharLiteral(_) => {}
     Expr::StringLiteral(_) => {}
+
+
+        // identifier: check declared
         Expr::Ident(name) => {
             if symbols.lookup(name).is_none() {
                 errors.push(SemanticError::UndeclaredVariable { func: func_name.to_string(), name: name.clone() });
             }
         }
+
+
+        // unary operation: analyze sub-expression
         Expr::Unary { op: _, expr } => analyze_expr(expr, symbols, errors, func_name),
         Expr::Binary { op: _, left, right } => {
             analyze_expr(left, symbols, errors, func_name);
             analyze_expr(right, symbols, errors, func_name);
         }
+
+
+
         Expr::Assign { name, value } => {
+            // check variable declared
             if symbols.lookup(name).is_none() {
                 errors.push(SemanticError::UndeclaredVariable { func: func_name.to_string(), name: name.clone() });
             }
             analyze_expr(value, symbols, errors, func_name);
         }
-    Expr::Call { name, args } => {
+    Expr::Call { name, args: _args } => {
             // analyze args
-            for a in args {
+            for a in _args {
                 analyze_expr(a, symbols, errors, func_name);
             }
             // check arity if function known
             if let Some(sig) = symbols.find_global_function(name) {
-                if sig.params_types.len() != 0 && sig.params_types.len() != args.len() {
-                    errors.push(SemanticError::WrongArgCount { func: func_name.to_string(), name: name.clone(), expected: sig.params_types.len(), found: args.len() });
+                if sig.params_types.len() != 0 && sig.params_types.len() != _args.len() {
+                    errors.push(SemanticError::WrongArgCount { func: func_name.to_string(), name: name.clone(), expected: sig.params_types.len(), found: _args.len() });
                 }
             }
-            // else: calling external function (like printf) is allowed
         }
     }
 }
 
-// Determine the type of an expression where possible. Returns None for unknown (e.g., Ident of external var).
+
+
+// Determine the type of an expression where possible. Returns None for unknown
 fn expr_type(expr: &Expr, symbols: &SymbolTable) -> Option<Type> {
+    // Determine the type of an expression where possible. Returns None for unknown
     match expr {
         Expr::Number(_) => Some(Type::Int),
         Expr::FloatNumber(_) => Some(Type::Float),
@@ -173,14 +198,19 @@ fn expr_type(expr: &Expr, symbols: &SymbolTable) -> Option<Type> {
                 None
             }
         }
+
+
+        // type is type of sub-expression
         Expr::Unary { .. } => None,
         Expr::Binary { left, right, .. } => {
             let l = expr_type(left, symbols);
             let r = expr_type(right, symbols);
             if l == r { l } else { None }
         }
+
+
+        // type is variable's type if known
         Expr::Assign { name, value } => {
-            // type is variable's type if known
             if let Some(sym) = symbols.lookup(name) {
                 if let crate::symbol::Symbol::Variable { name: _, ty } = sym {
                     return Some(ty.clone());
@@ -188,7 +218,11 @@ fn expr_type(expr: &Expr, symbols: &SymbolTable) -> Option<Type> {
             }
             expr_type(value, symbols)
         }
-        Expr::Call { name, args } => {
+
+
+
+        // type is return type of function if known
+        Expr::Call { name, .. } => {
             if let Some(sig) = symbols.find_global_function(name) {
                 Some(sig.return_type.clone())
             } else {
