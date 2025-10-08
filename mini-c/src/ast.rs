@@ -1,12 +1,9 @@
-// ast.rs
-// AST definitions for mini-c
-
+// allows unused code during development
 #![allow(dead_code)]
-// Abstract Syntax Tree (AST) definitions
-
-// works only on the assumption that all the datatypes are "int"
-
 #[derive(Debug, Clone, PartialEq, Eq)]
+
+
+// basic types
 pub enum Type {
     Int,
     Float,
@@ -15,6 +12,7 @@ pub enum Type {
 }
 
 
+// expressions
 #[derive(Debug, Clone)]
 pub enum Expr {
     Number(i64),
@@ -28,13 +26,18 @@ pub enum Expr {
     Call { name: String, args: Vec<Expr> },
 }
 
-// defining separate separate items make things go smoothl
+
+// unary operators
 #[derive(Debug, Clone)]
 pub enum UnaryOp { Neg, Not }
 
+
+// binary operators
 #[derive(Debug, Clone)]
 pub enum BinaryOp { Add, Sub, Mul, Div }
 
+
+// statements
 #[derive(Debug, Clone)]
 pub enum Stmt {
     VarDecl { ty: Type, name: String, value: Expr },
@@ -43,11 +46,15 @@ pub enum Stmt {
     // minimal subset for now; add If/While later
 }
 
+
+// a block of statements -> this is for inside functions
 #[derive(Debug, Clone)]
 pub struct Block {
     pub stmts: Vec<Stmt>,
 }
 
+
+// a function with name, return type, parameters, and body
 #[derive(Debug, Clone)]
 pub struct Function {
     pub name: String,
@@ -56,6 +63,9 @@ pub struct Function {
     pub body: Block,
 }
 
+
+
+// the whole program with multiple functions
 #[derive(Debug, Clone)]
 pub struct Program {
     pub functions: Vec<Function>,
