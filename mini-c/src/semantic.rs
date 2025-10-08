@@ -86,9 +86,11 @@ pub fn analyze(program: &Program) -> SemResult<()> {
             analyze_stmt(stmt, &mut symbols, &mut errors, &func.name);
         }
 
+
         symbols.leave_scope();
     }
 
+    // return all errors found
     if errors.is_empty() {
         Ok(())
     } else {
@@ -96,6 +98,8 @@ pub fn analyze(program: &Program) -> SemResult<()> {
     }
 }
 
+
+// Analyze a statement for semantic errors.
 fn analyze_stmt(stmt: &Stmt, symbols: &mut SymbolTable, errors: &mut Vec<SemanticError>, func_name: &str) {
     match stmt {
         Stmt::VarDecl { ty, name, value } => {
@@ -112,6 +116,9 @@ fn analyze_stmt(stmt: &Stmt, symbols: &mut SymbolTable, errors: &mut Vec<Semanti
                 }
             }
         }
+
+
+        // expression statement: analyze expression
         Stmt::ExprStmt(expr) => analyze_expr(expr, symbols, errors, func_name),
         Stmt::Return(expr) => {
             analyze_expr(expr, symbols, errors, func_name);
@@ -154,7 +161,7 @@ fn analyze_expr(expr: &Expr, symbols: &SymbolTable, errors: &mut Vec<SemanticErr
         }
 
 
-
+        // assignment: check variable declared, analyze value
         Expr::Assign { name, value } => {
             // check variable declared
             if symbols.lookup(name).is_none() {
@@ -162,6 +169,10 @@ fn analyze_expr(expr: &Expr, symbols: &SymbolTable, errors: &mut Vec<SemanticErr
             }
             analyze_expr(value, symbols, errors, func_name);
         }
+
+
+
+        
     Expr::Call { name, args: _args } => {
             // analyze args
             for a in _args {
